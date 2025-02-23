@@ -38,7 +38,7 @@ class HairClassifier:
         base_dir = os.path.dirname(__file__)
         if model_path is None:
             # Navigate up one level from backend then into the desired models folder
-            model_path = os.path.join(base_dir, '..', 'models', 'Hair-Type-Classifier', 'models', 'hair-resnet18-model.pkl')
+            model_path = os.path.join(base_dir, '..', 'models', 'hair_classifier', 'models', 'hair-resnet18-model.pkl')
             model_path = os.path.abspath(model_path)
         
         print(f"Looking for model at: {model_path}")
@@ -222,18 +222,22 @@ def health_check():
         }), 500
 
 def get_free_port():
-    """Get an available port for the Gradio interface."""
+    """Return an available port by binding to port 0 and letting the OS select one."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(('', 0))
+    s.bind(('', 0))  # Bind to a free port provided by the OS.
     port = s.getsockname()[1]
     s.close()
     return port
 
 def launch_gradio():
     """Launch the Gradio interface on an available port."""
-    gradio_port = get_free_port()
-    print(f"Starting Gradio interface on http://localhost:{gradio_port}")
-    demo.launch(server_name="0.0.0.0", server_port=gradio_port, share=False)
+    try:
+        gradio_port = get_free_port()
+        print(f"Starting Gradio interface on http://localhost:{gradio_port}")
+        # Launch Gradio interface with the chosen port.
+        demo.launch(server_name="0.0.0.0", server_port=gradio_port, share=False)
+    except Exception as e:
+        print(f"Error launching Gradio: {e}")
 
 def run_app(flask_port=8000):
     """Run Flask app and Gradio interface concurrently."""
