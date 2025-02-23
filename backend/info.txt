@@ -1,0 +1,5 @@
+This will start the server with:
+
+Gradio interface at http://localhost:8000/gradio
+REST API endpoint at http://localhost:8000/api/analyze
+Health check at http://localhost:8000/api/health
