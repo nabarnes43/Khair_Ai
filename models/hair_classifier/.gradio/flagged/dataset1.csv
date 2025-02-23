@@ -1,0 +1,2 @@
+img,output,timestamp
+.gradio/flagged/img/a89c1a2a65b6d334a6ca/Headshot best formal side.jpg,"{""label"": ""dreadlocks"", ""confidences"": [{""label"": ""dreadlocks"", ""confidence"": 0.5293666124343872}, {""label"": ""kinky"", ""confidence"": 0.4101589322090149}, {""label"": ""curly"", ""confidence"": 0.056678541004657745}]}",2025-02-21 11:24:33.598496
