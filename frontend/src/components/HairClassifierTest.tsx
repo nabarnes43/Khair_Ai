@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Camera, Upload } from 'lucide-react'
+import { CameraDialog } from './CameraDialog'
 
 // Types for our application
 interface ClassificationResult {
@@ -34,6 +35,7 @@ const HairAnalysisSystem = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [classificationResult, setClassificationResult] = useState<ClassificationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -101,6 +103,11 @@ const HairAnalysisSystem = () => {
     }
   }
 
+  const handleCameraCapture = (imageData: string) => {
+    setSelectedImage(imageData);
+    setError(null);
+  }
+
   // Get the dominant hair type from classification results
   const getDominantType = (): string | null => {
     if (!classificationResult) return null
@@ -158,9 +165,7 @@ const HairAnalysisSystem = () => {
                   Upload Image
                 </Button>
                 <Button
-                  onClick={() => {
-                    alert('Camera functionality would be implemented here')
-                  }}
+                  onClick={() => setIsCameraOpen(true)}
                   variant="outline"
                 >
                   <Camera className="w-4 h-4 mr-2" />
@@ -183,6 +188,7 @@ const HairAnalysisSystem = () => {
             <Button
               onClick={handleAnalysis}
               disabled={!selectedImage || isAnalyzing}
+              variant="outline"
               className="w-full"
             >
               {isAnalyzing ? 'Analyzing...' : 'Analyze Hair Type'}
@@ -237,6 +243,13 @@ const HairAnalysisSystem = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Camera Dialog */}
+      <CameraDialog 
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   )
 }

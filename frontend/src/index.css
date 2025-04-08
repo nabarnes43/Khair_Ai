@@ -1,13 +1,42 @@
+/* Import Tailwind CSS core styles */
+@tailwind base; /* Includes CSS reset and default styling for HTML elements */
+@tailwind components; /* Includes component classes for building reusable UI elements */
+@tailwind utilities; /* Includes utility classes for one-off styling needs */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* 
+ * TAILWIND LAYERS
+ * 
+ * @layer base - Use for:
+ *   - Default element styles
+ *   - CSS resets
+ *   - CSS variables (like below)
+ *   - Example: h1 { @apply text-2xl font-bold; }
+ * 
+ * @layer components - Use for:
+ *   - Reusable component patterns
+ *   - Combined utility classes
+ *   - Example: .btn { @apply px-4 py-2 rounded; }
+ * 
+ * @layer utilities - Use for:
+ *   - Custom single-purpose classes
+ *   - Extending Tailwind's utility set
+ *   - Example: .text-shadow { text-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
+ */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: #ffffff; /* Pure white */
+    --foreground: #000000; /* black */
+    --primary: #eae0d5;  
+    --secondary: #6C6063;
+    --accent: #1f3323;
+    --text: #000000;
+    --destructive: #EF6C6C;
     /* You can modify any of these color values */
+    /* Examples of adding more color variables:
+     * --primary: 221 83% 53%;   (blue-500)
+     * --secondary: 142 76% 36%; (green-600)
+     * --accent: 334 95% 57%;    (pink-500)
+     */
   }
 }
