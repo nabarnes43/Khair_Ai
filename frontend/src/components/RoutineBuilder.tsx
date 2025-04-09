@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react'
+import { FC, useState, useEffect, useMemo } from 'react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
 import { RefreshCw, Lock } from 'lucide-react'
@@ -7,6 +7,12 @@ import Product from './Product'
 import allProductsData from '../data/all_products.json'
 import { Product as ProductType } from '../types/product'
 import { PRODUCT_CATEGORIES } from '../lib/constants'
+// Import our utility functions
+import { 
+  getBestProductsForCategory,
+  getIngredientScore,
+  categorizeProducts,
+} from '../utils/IngredientUtils'
 
 /**
  * A component for building hair care routines
@@ -14,53 +20,57 @@ import { PRODUCT_CATEGORIES } from '../lib/constants'
 const RoutineBuilder: FC = () => {
   const [lockedProducts, setLockedProducts] = useState<Record<string, boolean>>({});
   const [filteredProducts, setFilteredProducts] = useState<Record<string, ProductType>>({});
+  // Track recently rerolled products to avoid showing them again
+  const [recentlyRerolled, setRecentlyRerolled] = useState<Record<string, string[]>>({});
   const hairType = "4C Curly Hair Type";
   
-  // Categories to include in the routine - updated to match exact names in data
-  const routineCategories = [
+  // Categories to include in the routine
+  const routineCategories = useMemo(() => [
     PRODUCT_CATEGORIES.SHAMPOO,
     PRODUCT_CATEGORIES.CONDITIONER, 
     PRODUCT_CATEGORIES.LEAVE_IN_CONDITIONER,
     PRODUCT_CATEGORIES.SCALP_SCRUB,
     PRODUCT_CATEGORIES.HAIR_OIL
-  ];
+  ], []);
 
-  /**
-   * Search function to find products by category
-   * @param category - The product category to search for
-   * @returns An array of products matching the category
-   */
-  const searchProductsByCategory = (category: string) => {
-    return (allProductsData as ProductType[]).filter(product => product.category === category);
-  };
+  // Key beneficial ingredients for 4C curly hair (example)
+  // These would ideally come from your AI system based on hair type & survey results
+  const beneficialIngredients = useMemo(() => [
+    "Butyrospermum Parkii Butter",
+    "Cocos Nucifera Oil",
+    "Aloe Barbadensis Leaf Extract",
+    "Aloe Barbadensis Leaf Juice",
+    "Glycerin",
+    "Ricinus Communis Seed Oil",
+    "Simmondsia Chinensis Seed Oil",
+    "honey",
+    "Persea Gratissima Oil"
+  ], []);
 
-  /**
-   * Get a random product from a specific category
-   * @param category - The product category
-   * @returns A random product from the specified category or undefined if none found
-   */
-  const getRandomProductByCategory = (category: string) => {
-    const products = searchProductsByCategory(category);
-    if (products.length === 0) return undefined;
-    
-    const randomIndex = Math.floor(Math.random() * products.length);
-    return products[randomIndex];
-  };
+  // Categorize products once on load (memoized to prevent recalculation)
+  const categorizedProducts = useMemo(() => 
+    categorizeProducts(allProductsData as ProductType[]), 
+  []);
 
-  // Initialize the products on component mount
+  // Initialize products on component mount
   useEffect(() => {
-    // Select one random product per category
     const selectedProducts: Record<string, ProductType> = {};
     
     routineCategories.forEach(category => {
-      const randomProduct = getRandomProductByCategory(category);
-      if (randomProduct) {
-        selectedProducts[category] = randomProduct;
-      }
+      const excludeIds = recentlyRerolled[category] || [];
+      const topProducts = getBestProductsForCategory(
+        categorizedProducts,
+        category,
+        beneficialIngredients,
+        excludeIds,
+        1
+      );
+      
+      selectedProducts[category] = topProducts[0];
     });
     
     setFilteredProducts(selectedProducts);
-  }, []);
+  }, [routineCategories, beneficialIngredients, categorizedProducts, recentlyRerolled]);
 
   // Toggle product lock status
   const handleToggleProductLock = (productId: string) => {
@@ -73,22 +83,38 @@ const RoutineBuilder: FC = () => {
   // Reroll unlocked products
   const handleReroll = () => {
     const newSelection = { ...filteredProducts };
+    const newRecentlyRerolled = { ...recentlyRerolled };
+    
     routineCategories.forEach(category => {
       const currentProduct = filteredProducts[category];
-      // Skip if the current product is locked
-      if (currentProduct && lockedProducts[currentProduct.id]) {
-        return;
-      }
+      if (!currentProduct || lockedProducts[currentProduct.id]) return;
       
-      // Get a random product for this category
-      const randomProduct = getRandomProductByCategory(category);
-      if (randomProduct) {
-        newSelection[category] = randomProduct;
-      }
+      // Track the current product as recently rerolled
+      const rerolledForCategory = newRecentlyRerolled[category] || [];
+      newRecentlyRerolled[category] = [
+        ...rerolledForCategory, 
+        currentProduct.id
+      ] // Keep all use slice(-5) to keep only 5 most recent
+      
+      // Get a new product for this category
+      const topProducts = getBestProductsForCategory(
+        categorizedProducts,
+        category,
+        beneficialIngredients,
+        newRecentlyRerolled[category],
+        1
+      );
+      
+      newSelection[category] = topProducts[0];
     });
     
     setFilteredProducts(newSelection);
+    setRecentlyRerolled(newRecentlyRerolled);
   };
+
+  // Format the product score as a percentage
+  const formatScore = (product: ProductType): string => 
+    `${Math.round(getIngredientScore(product, beneficialIngredients) * 100)}% match`;
 
   // Save routine
   const handleSaveRoutine = () => {
@@ -103,6 +129,9 @@ const RoutineBuilder: FC = () => {
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-blue-600 mb-2">Your Personalized Hair Routine</h1>
         <p className="text-gray-600">Based on your {hairType}</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Prioritizing ingredients: {beneficialIngredients.join(', ')}
+        </p>
       </div>
       
       <Card className="bg-blue-50 mb-10 p-4">
@@ -136,7 +165,10 @@ const RoutineBuilder: FC = () => {
                 image_url={product.image_url || ""}
                 ingredients={product.ingredients || []}
                 isLocked={lockedProducts[product.id] || false}
+                price={product.price}
+                score={formatScore(product)}
                 onToggleLock={() => handleToggleProductLock(product.id)}
+                beneficialIngredients={beneficialIngredients}
               />
             </div>
           ) : null;
@@ -155,4 +187,4 @@ const RoutineBuilder: FC = () => {
   )
 }
 
-export default RoutineBuilder 
+export default RoutineBuilder

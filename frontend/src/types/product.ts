@@ -22,4 +22,6 @@ export interface Product {
   review_count?: string;
   /** List of ingredients */
   ingredients?: string[];
+  /** Product score */
+  score?: number;
 } 
