@@ -25,7 +25,6 @@ export const categorizeProducts = (products: ProductType[]): CategorizedProducts
     categorized[category].push(product);
   });
   
-  console.log('Products categorized:', Object.keys(categorized));
   return categorized;
 };
 

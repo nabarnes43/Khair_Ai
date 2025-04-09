@@ -24,4 +24,24 @@ export interface Product {
   ingredients?: string[];
   /** Product score */
   score?: number;
-} 
+  /** Engagement statistics */
+  engagement_stats?: EngagementStats;
+}
+
+/**
+ * Interface representing engagement statistics for a product
+ */
+export interface EngagementStats {
+  /** Number of likes received */
+  likes: number;
+  /** Number of dislikes received */
+  dislikes: number;
+  /** Number of times the product has been rerolled */
+  rerolls: number;
+  /** Number of times the product has been added to routines */
+  routines: number;
+  /** Number of times the product has been viewed */
+  views: number;
+  /** Last time the stats were updated */
+  last_updated: string;
+}

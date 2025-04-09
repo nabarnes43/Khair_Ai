@@ -10,6 +10,8 @@ import os
 import threading
 import socket
 import traceback
+import json
+from datetime import datetime
 
 # Initialize Flask app and enable CORS
 flask_app = Flask(__name__)
@@ -220,6 +222,151 @@ def health_check():
             'model_loaded': classifier.learn is not None,
             'model_path': classifier.model_path
         }), 500
+
+@flask_app.route('/api/products', methods=['GET'])
+def get_all_products():
+    """Endpoint to get all products"""
+    try:
+        # Path to the all_products.json file
+        products_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'src', 'data', 'all_products.json')
+        
+        with open(products_path, 'r') as f:
+            products = json.load(f)
+            
+        return jsonify(products)
+    except Exception as e:
+        print(f"Error fetching products: {str(e)}")
+        print(f"Stack trace: {traceback.format_exc()}")
+        return jsonify({'error': f'Error fetching products: {str(e)}'}), 500
+
+@flask_app.route('/api/products/<product_id>', methods=['GET'])
+def get_product(product_id):
+    """Endpoint to get a specific product by ID"""
+    try:
+        # Path to the all_products.json file
+        products_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'src', 'data', 'all_products.json')
+        
+        with open(products_path, 'r') as f:
+            products = json.load(f)
+        
+        # Find product by ID
+        product = next((p for p in products if p['id'] == product_id), None)
+        
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+            
+        return jsonify(product)
+    except Exception as e:
+        print(f"Error fetching product: {str(e)}")
+        print(f"Stack trace: {traceback.format_exc()}")
+        return jsonify({'error': f'Error fetching product: {str(e)}'}), 500
+
+@flask_app.route('/api/products/<product_id>/engagement', methods=['PUT', 'GET'])
+def update_product_engagement(product_id):
+    """Endpoint to update engagement stats for a product"""
+    try:
+        # Path to the all_products.json file
+        products_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'src', 'data', 'all_products.json')
+        
+        with open(products_path, 'r') as f:
+            products = json.load(f)
+        
+        # Find product by ID
+        product_index = None
+        for i, product in enumerate(products):
+            if product['id'] == product_id:
+                product_index = i
+                break
+        
+        if product_index is None:
+            return jsonify({'error': 'Product not found'}), 404
+        
+        # For GET requests, just return the current engagement stats
+        if request.method == 'GET':
+            # Initialize engagement_stats if it doesn't exist
+            if 'engagement_stats' not in products[product_index]:
+                products[product_index]['engagement_stats'] = {
+                    'likes': 0,
+                    'dislikes': 0,
+                    'rerolls': 0,
+                    'routines': 0,
+                    'views': 0,
+                    'last_updated': datetime.utcnow().isoformat()
+                }
+            return jsonify({'engagement_stats': products[product_index]['engagement_stats']})
+        
+        # For PUT requests, handle the engagement update
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+            
+        engagement_data = request.json
+        
+        # Initialize engagement_stats if it doesn't exist
+        if 'engagement_stats' not in products[product_index]:
+            products[product_index]['engagement_stats'] = {
+                'likes': 0,
+                'dislikes': 0,
+                'rerolls': 0,
+                'routines': 0,
+                'views': 0,
+                'last_updated': datetime.utcnow().isoformat()
+            }
+        
+        # Update engagement stats by incrementing the provided values
+        for key, value in engagement_data.items():
+            if key in products[product_index]['engagement_stats'] and key != 'last_updated':
+                # Ensure current value is a number before incrementing
+                current_value = products[product_index]['engagement_stats'][key]
+                if not isinstance(current_value, (int, float)):
+                    current_value = 0
+                # Increment the value by the provided amount
+                products[product_index]['engagement_stats'][key] = current_value + value
+        
+        # Always update the last_updated timestamp
+        products[product_index]['engagement_stats']['last_updated'] = datetime.utcnow().isoformat()
+        
+        # Save the updated products back to the file
+        with open(products_path, 'w') as f:
+            json.dump(products, f, indent=2)
+            
+        return jsonify(products[product_index])
+    except Exception as e:
+        print(f"Error updating product engagement: {str(e)}")
+        print(f"Stack trace: {traceback.format_exc()}")
+        return jsonify({'error': f'Error updating product engagement: {str(e)}'}), 500
+
+@flask_app.route('/api/products/initialize-engagement', methods=['POST'])
+def initialize_all_product_engagement():
+    """Endpoint to initialize engagement stats for all products"""
+    try:
+        # Path to the all_products.json file
+        products_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'src', 'data', 'all_products.json')
+        
+        with open(products_path, 'r') as f:
+            products = json.load(f)
+        
+        # Initialize engagement_stats for all products
+        now = datetime.utcnow().isoformat()
+        for product in products:
+            if 'engagement_stats' not in product:
+                product['engagement_stats'] = {
+                    'likes': 0,
+                    'dislikes': 0,
+                    'rerolls': 0,
+                    'routines': 0,
+                    'views': 0,
+                    'last_updated': now
+                }
+        
+        # Save the updated products back to the file
+        with open(products_path, 'w') as f:
+            json.dump(products, f, indent=2)
+            
+        return jsonify({'status': 'success', 'message': f'Initialized engagement stats for {len(products)} products'})
+    except Exception as e:
+        print(f"Error initializing product engagement: {str(e)}")
+        print(f"Stack trace: {traceback.format_exc()}")
+        return jsonify({'error': f'Error initializing product engagement: {str(e)}'}), 500
 
 def get_free_port():
     """Return an available port by binding to port 0 and letting the OS select one."""
